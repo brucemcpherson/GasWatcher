@@ -1,0 +1,45 @@
+
+// initialize the binder to watch for color changes and data changes in the active sheet
+
+window.onload = function () {
+  // watch for changed in data and active position using active sheet
+  var dataWatch = ClientWatcher.addWatcher ();
+  
+  // watch for changed in data and active position using active sheet
+  var backgroundWatch = ClientWatcher.addWatcher ({
+    watch:{active:false},
+    domain:{property:'backgrounds'}
+  });
+
+
+// start them off
+   dataWatch.watch (function (current,pack,watcher) {
+     show('dw',  watcher);
+   });
+
+   backgroundWatch.watch (function (current,pack,watcher) {
+     show('cw', watcher);
+   });
+  
+   function show(prefix,watcher) {
+   
+      var status = watcher.getStatus();
+      var current = watcher.getCurrent();
+      if (current.active) {
+        DomUtils.elem(prefix + "-id").innerHTML = current.active.id;
+        DomUtils.elem(prefix + "-datarange").innerHTML = current.active.dataRange;
+        DomUtils.elem(prefix + "-activesheet").innerHTML = current.active.sheet;
+        DomUtils.elem(prefix + "-activerange").innerHTML = current.active.range;
+      }
+      if (current.data) {
+        DomUtils.elem(prefix + "-data").innerHTML = JSON.stringify(current.fiddler ? current.fiddler.getData() : current.data);
+        DomUtils.elem(prefix + "-status").innerHTML = JSON.stringify(status);
+      }
+      
+   }
+};
+
+
+    
+
+

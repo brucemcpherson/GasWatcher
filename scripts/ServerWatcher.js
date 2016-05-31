@@ -31,10 +31,30 @@ var ServerWatcher = (function (ns) {
     // get the active stuff
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sh = ss.getActiveSheet();
-    
-    // the whole sheet/partial sheet/the active sheet/a specific sheet
+    var aRange = ss.getActiveRange();
+
+    // first select the sheet .. given or active
     var s = watch.domain.sheet ? ss.getSheetByName(watch.domain.sheet) : sh;
-    var r = watch.domain.range ? s.getRange(watch.domain.range) : s.getDataRange();
+    
+    // if the scope is "sheet", then it will always be the datarange used
+    if (watch.domain.scope === "Sheet") {
+      var r = s.getDataRange();
+    }
+    
+    // the scope is range - if there's a given range use it - otherwise use the datarange on the selected sheet
+    else if (watch.domain.scope === "Range") {
+      var r = (watch.domain.range ? sh.getRange(watch.domain.range) : sh).getDataRange();
+    }
+    
+    // regardless of any other settings always use the active range
+    else if (watch.domain.scope === "Active") {
+      var r = aRange;
+    }
+    
+    // otherwise its a mess up
+    else {
+      throw 'scope ' + watch.domain.scope + ' is not valid scope - should be Sheet, Range or Active';
+    }
     
     // start building the result
     var pack = {
@@ -53,13 +73,30 @@ var ServerWatcher = (function (ns) {
       }
     }
     
+    // provide sheets if requested
+    if (watch.watch.sheets) {
+      var sheets = ss.getSheets().map(function(d) { return d.getName(); });
+      var cs = Utils.keyDigest(sheets);
+      pack.changed.sheets = cs !== pack.checksum.sheets;
+      if (pack.changed.sheets) {
+        pack.sheets = sheets;
+        pack.checksum.sheets = cs;
+      }
+    }
+    
     // provide active if requested
     if (watch.watch.active) {
       var a = {
         id:ss.getId(),
         sheet:sh.getName(),
-        range:sh.getActiveRange().getA1Notation(),
-        dataRange:sh.getDataRange().getA1Notation()
+        range:aRange.getA1Notation(),
+        dataRange:sh.getDataRange().getA1Notation(),
+        dimensions: {
+          numRows : aRange.getNumRows(),
+          numColumns : aRange.getNumColumns(),
+          rowOffset : aRange.getRowIndex(),
+          colOffset : aRange.getColumn()
+        }
       }
       var cs = Utils.keyDigest (a);
       pack.changed.active = cs !== pack.checksum.active;

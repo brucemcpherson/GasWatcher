@@ -7,7 +7,7 @@
  */
 var ClientWatcher = (function (ns) {
   
-  var watchers_  = {};
+  var watchers_  = {},startTime_=0;;
 
   // now clean it
   function cleanTheCamel_ (cleanThis) {
@@ -39,15 +39,17 @@ var ClientWatcher = (function (ns) {
       id: '' ,                                        // Watcher id
       watch: {
         active: true,                                 // whether to watch for changes to active
-        data: true                                    // whether to watch for data content changes
+        data: true,                                   // whether to watch for data content changes
+        sheets:true                                   // watch for changes in number/names of sheets
       },
       checksum:{
         active:"",                                    // the active checksum last time polled
-        data:""                                       // the data checksum last time polled
+        data:"",                                      // the data checksum last time polled
+        sheets:""                                     // the sheets in the workbook last time polled
       },                                
       domain: {
         app: "Sheets",                                // for now only Sheets are supported                     
-        scope: "Sheet",                               // sheet, or range - sheet will watch the datarange
+        scope: "Sheet",                               // Sheet, Active or Range - sheet will watch the datarange
         range: "",                                    // if range, specifiy a range to watch
         sheet: "",                                    // a sheet name - if not given, the active sheet will be used
         property:"Values",                            // Values,Backgrounds etc...
@@ -120,12 +122,28 @@ var ClientWatcher = (function (ns) {
     };
     
     self.start = function () {
-      // get started
-      return nextPolling_();
+      // get started .. first time it will run immediately
+      return nextPolling_(!status_.serial);
     };
+    
+    self.restart = function () {
+      stopped_ = false;
+      return self;
+    }
     
     self.stop = function () {
       stopped_ = true;
+      return self;
+    }
+    
+    // force a redo 
+    self.poke = function () {
+      Object.keys(watch_.checksum).forEach(function(d) {
+        watch_.checksum[d] = "";
+      });
+    }
+    self.getWatching = function () {
+      return watch_;
     }
     /**
     * if you want the current data
@@ -147,7 +165,7 @@ var ClientWatcher = (function (ns) {
      * do the next polling after waiting some time
      * @return {Promise}
      */
-    function nextPolling_ () {
+    function nextPolling_ (immediate) {
       return new Promise(function (resolve,reject) {
         setTimeout ( function () {
           self.poll()
@@ -157,11 +175,22 @@ var ClientWatcher = (function (ns) {
           ['catch'](function(pack) {
             reject(pack);
           })
-        }, status_.serial ? watch_.pollFrequency : 10);
+        }, immediate ? tweakWaitTime(25): tweakWaitTime(watch_.pollFrequency));
       });
+      
+      // just to avoid everybody always polling at the same time
+      function tweakWaitTime(t) {
+        t += (t*Math.random()/5*(Math.random()>.5 ? 1 : -1));
+        // now we need to tweak the start time to avoid a timing problem in htmlservice 
+        // .. never start one within 750ms of the last one.
+        var now = new Date().getTime();
+        startTime_ = Math.max(now + t, startTime_+750);
+        return startTime_ - now;
+      }
       
     }
 
+    
     // convenience function to endlessly poll and callback on any changes
     self.watch = function (callback) {
       if (typeof callback !== "function") {
@@ -170,9 +199,17 @@ var ClientWatcher = (function (ns) {
       self.start()
       .then (function(pack) {
 
-        if (pack.changed.active || pack.changed.data) {
+        if (pack.changed.active || pack.changed.data || pack.changed.sheets) {
           callback(current_, pack, self);
         }
+        
+        // just keep going round recusrsively
+        if (!stopped_) {
+          self.watch(callback);
+        }
+      })
+      ['catch'](function(err) {
+        // this will have been dealt with further up, but we still need to repoll
         if (!stopped_) {
           self.watch(callback);
         }
@@ -190,40 +227,75 @@ var ClientWatcher = (function (ns) {
       status_.requested = new Date().getTime();
       status_.serial ++; 
       
-      return new Promise(function (resolve, reject) {
-
-        Provoke.run ("ServerWatcher", "poll", watch_)
-        .then (
-          function (pack) {
-            status_.responded = new Date().getTime();
-            status_.totalWaiting += (status_.responded - status_.requested);
-            // if there's been some changes, then store them
-            if(pack.active) {
-              current_.active = pack.active;
-              watch_.checksum.active = pack.checksum.active;
-            }
-            if (pack.data) {
-              current_.data = pack.data;
-              watch_.checksum.data = pack.checksum.data;
-              if (watch_.domain.fiddler && watch_.domain.property === "Data") {
-                current_.fiddler = new Fiddler().setValues(current_.data);
+      // promises dont have finally() yet.
+      function finallyActions  () {
+        status_.responded = new Date().getTime();
+        status_.totalWaiting += (status_.responded - status_.requested);
+      }
+      
+      // we can get rejected from a few paces, so just pul this out
+      function rejectActions  (reject,err) {
+        console.log (err);
+        status_.errors++;
+        finallyActions();
+        reject(err);
+      }
+      
+      return pollWork();
+      
+      // call the co-operating server function
+      function pollWork () {
+        return new Promise(function (resolve, reject) {
+          
+          Provoke.run ("ServerWatcher", "poll", watch_)
+          .then (
+            function (pack) {
+              
+              // if there's been some changes to data then store it
+              if (pack.data) {
+                
+                if (watch_.domain.fiddler && watch_.domain.property === "Values") {
+                  // it may fail because data is in midde of being updated
+                  // but that's - it'll get it next time.
+                  try {
+                    current_.fiddler = new Fiddler().setValues(pack.data);
+                  }
+                  catch (err) {
+                    // dont want to count this as a valid piece of data yet
+                    // so we'll pass on this poll result and treat it as a reject
+                    console.log("caught fiddle error");
+                    return rejectActions(reject,err);
+                  }
+                }
               }
-            }
-            if (pack.data || pack.active) {
-              status_.hits++;
-            }
-            resolve (pack);
-          })
-        ['catch'](function (err) {
-          // sometimes there will be network errors which can generally be ignored..
-          // pity there is no finally() in promises yet...
-          console.log (err);
-          status_.errors++;
-          status_.responded = new Date().getTime();
-          status_.totalWaiting += (status_.responded - status_.requested);
-          reject(pack);
+              watch_.checksum.data = pack.checksum.data;
+              current_.data = pack.data;
+              
+              // if there's been some changes to active positions
+              if(pack.active) {
+                current_.active = pack.active;
+                watch_.checksum.active = pack.checksum.active;
+              }
+              
+              // if there's been some changes to sheets then store it
+              if (pack.sheets) {
+                current_.sheets = pack.sheets;
+                watch_.checksum.sheets = pack.checksum.sheets;
+              }
+              
+              if (pack.data || pack.active || pack.sheets) {
+                status_.hits++;
+              }
+              finallyActions();
+              resolve (pack);
+            })
+          ['catch'](function (err) {
+            // sometimes there will be network errors which can generally be ignored..
+            rejectActions (reject, err);
+          });
         });
-      });
+        
+      }
     };
     
   };

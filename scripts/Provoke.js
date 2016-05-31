@@ -30,7 +30,8 @@ var Provoke =(function (ns) {
       })
     
       .withSuccessHandler (function(result) {
-        resolve (result);
+         resolve (result)
+
       })
     
       .exposeRun (namespace,method,runArgs); 

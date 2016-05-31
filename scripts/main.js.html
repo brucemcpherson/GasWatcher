@@ -1,13 +1,13 @@
 
-// initialize the binder to watch for color changes and data changes in the active sheet
+// this demo shows how to use the watcher and displays any detected changes server side
 
 window.onload = function () {
   // watch for changed in data and active position using active sheet
   var dataWatch = ClientWatcher.addWatcher ();
   
-  // watch for changed in data and active position using active sheet
+  // watch for changes ib background colors in active sheet
   var backgroundWatch = ClientWatcher.addWatcher ({
-    watch:{active:false},
+    watch:{active:false,sheets:false},
     domain:{property:'backgrounds'}
   });
 
@@ -15,12 +15,31 @@ window.onload = function () {
 // start them off
    dataWatch.watch (function (current,pack,watcher) {
      show('dw',  watcher);
+     console.log(watcher.getCurrent());
    });
 
    backgroundWatch.watch (function (current,pack,watcher) {
      show('cw', watcher);
    });
-  
+   
+
+// add some listeners to flip between range and sheet
+   ["radio-range","radio-sheet"].forEach(function (e) {
+     DomUtils.elem (e).addEventListener("change",function () {
+     [dataWatch,backgroundWatch].forEach(function(d) {
+        
+        if (d.getWatching().domain.scope === "Sheet") {
+          d.getWatching().domain.scope = "Active"
+        }
+        else {
+          d.getWatching().domain.scope = "Sheet"
+        }
+        d.poke();
+      });
+     }); 
+   });
+
+   
    function show(prefix,watcher) {
    
       var status = watcher.getStatus();
@@ -30,9 +49,14 @@ window.onload = function () {
         DomUtils.elem(prefix + "-datarange").innerHTML = current.active.dataRange;
         DomUtils.elem(prefix + "-activesheet").innerHTML = current.active.sheet;
         DomUtils.elem(prefix + "-activerange").innerHTML = current.active.range;
+        DomUtils.elem(prefix + "-dimensions").innerHTML = JSON.stringify(current.active.dimensions);
+      }
+      if (current.sheets) {
+        DomUtils.elem(prefix + "-sheets").innerHTML = current.sheets;
       }
       if (current.data) {
-        DomUtils.elem(prefix + "-data").innerHTML = JSON.stringify(current.fiddler ? current.fiddler.getData() : current.data);
+        DomUtils.elem(prefix + "-data").innerHTML = JSON.stringify(current.data);
+        DomUtils.elem(prefix + "-fiddler").innerHTML = current.fiddler ? JSON.stringify(current.fiddler.getData()) : "";
         DomUtils.elem(prefix + "-status").innerHTML = JSON.stringify(status);
       }
       

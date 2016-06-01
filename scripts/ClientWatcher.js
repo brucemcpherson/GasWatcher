@@ -263,7 +263,7 @@ var ClientWatcher = (function (ns) {
                   catch (err) {
                     // dont want to count this as a valid piece of data yet
                     // so we'll pass on this poll result and treat it as a reject
-                    console.log("caught fiddle error");
+                    
                     return rejectActions(reject,err);
                   }
                 }

@@ -5,10 +5,19 @@
  * @param {Object} e The event parameter for a simple onOpen trigger.
  */
 function onOpen(e) {
-  SpreadsheetApp.getUi()
-      .createAddonMenu()
-      .addItem('Watcher', 'showTest')
-      .addToUi();
+
+  try {
+    SpreadsheetApp.getUi()
+    .createAddonMenu()
+    .addItem('Watcher', 'showTest')
+    .addToUi();
+  }
+  catch (err) {
+    DocumentApp.getUi()
+    .createAddonMenu()
+    .addItem('Watcher', 'showTest')
+    .addToUi();
+  }
 }
 
 /**
@@ -27,12 +36,21 @@ function onInstall(e) {
  */
 function showTest() {
 
-  var ui = HtmlService.createTemplateFromFile('index.html')
+
+  try {
+      var ui = HtmlService.createTemplateFromFile('index.html')
       .evaluate()
       .setSandboxMode(HtmlService.SandboxMode.IFRAME)
       .setTitle('binder test');
-  
-  SpreadsheetApp.getUi().showSidebar(ui);
+    SpreadsheetApp.getUi().showSidebar(ui);
+  }
+  catch(err) {
+      var ui = HtmlService.createTemplateFromFile('indexDoc.html')
+      .evaluate()
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
+      .setTitle('binder test');
+    DocumentApp.getUi().showSidebar(ui);
+  }
 }
 
 

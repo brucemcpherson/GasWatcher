@@ -1,5 +1,5 @@
 # Google Apps Script Project: GasWatcher
-This repo (GasWatcher) was automatically updated on 24 June 2016 18:01:08 BST by GasGit
+This repo (GasWatcher) was automatically updated on 29 June 2016 12:28:10 BST by GasGit
 
 For more information see the [desktop liberation site](http://ramblings.mcpher.com/Home/excelquirks/drivesdk/gettinggithubready "desktop liberation") or [contact me on G+](https://plus.google.com/+BruceMcpherson "Bruce McPherson - GDE")
 ## Details for Apps Script project GasWatcher
@@ -19,6 +19,9 @@ main.js| html
 Utils| server_js
 DomUtils| server_js
 Fiddler| server_js
+mainDoc.js| html
+indexDoc| html
+test| server_js
 ### Directly referenced libraries
 no libraries discovered
 ### All dependencies and sub dependencies

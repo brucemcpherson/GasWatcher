@@ -39,9 +39,9 @@ var ClientWatcher = (function (ns) {
       id: '' ,                                        // Watcher id
       pollVisibleOnly:true,                           // just poll if the page is actually visible
       watch: {
-        active: true,                                 // whether to watch for changes to active
+        active: true,                                 // whether to watch for changes to active (this is the selection. in docs it also triggers if cursor changes)
         data: true,                                   // whether to watch for data content changes
-        sheets:true                                   // watch for changes in number/names of sheets
+        sheets:true                                   // watch for changes in number/names of sheets (only for app.sheets)
       },
       checksum:{
         active:"",                                    // the active checksum last time polled
@@ -49,7 +49,7 @@ var ClientWatcher = (function (ns) {
         sheets:""                                     // the sheets in the workbook last time polled
       },                                
       domain: {
-        app: "Sheets",                                // for now only Sheets are supported                     
+        app: "Sheets",                                // for sheets or docs                   
         scope: "Sheet",                               // Sheet, Active or Range - sheet will watch the datarange
         range: "",                                    // if range, specifiy a range to watch
         sheet: "",                                    // a sheet name - if not given, the active sheet will be used
@@ -59,6 +59,15 @@ var ClientWatcher = (function (ns) {
       }
     },options || {}]);
     
+    
+    /*
+    * example of document watching
+    domain: {
+      app:"Docs",
+      scope:"Doc",           // Doc (the whole document) , Active (selection) , Range (a named range), Path as returned by serverwatcher
+      range:""               // if range or path, specify the path or named range .. a path is of the type returned {path:xx.xx,partial:boolean,offset:x,endOffsetInclusive:y}
+    }
+    */
     // tidy up the parameter cases
     Object.keys(watch.domain).forEach(function(k) {
       watch.domain[k] = cleanTheCamel_ (watch.domain[k]);
@@ -273,7 +282,7 @@ var ClientWatcher = (function (ns) {
                 // if there's been some changes to data then store it
                 if (pack.data) {
                   
-                  if (watch_.domain.fiddler && watch_.domain.property === "Values") {
+                  if (watch_.domain.fiddler && watch_.domain.property === "Values" && watch_.domain.app === "Sheets") {
                     // it may fail because data is in midde of being updated
                     // but that's - it'll get it next time.
                     try {

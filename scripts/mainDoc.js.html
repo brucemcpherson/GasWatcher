@@ -1,0 +1,52 @@
+
+// this demo shows how to use the watcher and displays any detected changes server side
+
+window.onload = function () {
+
+  // watch for changes in doc data
+  var dataWatch = ClientWatcher.addWatcher ({
+    domain:{
+      app:"Docs",
+      scope:"Doc",
+      //range:"watcher"    //this is a named range for testing
+      range:{              // this is a path object for testing
+        path:"00000.00002.00001.00001.00000.00000",
+        partial:2,
+        offset:2,
+        endOffsetInclusive:4
+      }
+    }
+  });
+ 
+  dataWatch.watch (function (current,pack,watcher) {
+     show(watcher);
+     console.log(watcher.getCurrent());
+   });
+
+// add some listeners to flip between range and sheet
+   ["doc","range","active","path"].forEach(function (e) {
+     DomUtils.elem ('radio-'+e).addEventListener("change",function () {
+     [dataWatch].forEach(function(d) {
+        if(DomUtils.elem('radio-'+e).checked) {
+          d.getWatching().domain.scope = e;
+        }
+        d.poke();
+      });
+     }); 
+   });
+
+   
+   function show(watcher) {
+   
+      var status = watcher.getStatus();
+      var current = watcher.getCurrent();
+      
+      DomUtils.elem("current-json").innerHTML = JSON.stringify(current);
+   } 
+     
+};
+
+
+    
+
+

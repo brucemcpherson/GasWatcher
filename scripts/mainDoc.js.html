@@ -20,7 +20,10 @@ window.onload = function () {
  
   dataWatch.watch (function (current,pack,watcher) {
      show(watcher);
-     console.log(watcher.getCurrent());
+     console.log(current);
+     console.log(pack);
+     console.log(watcher);
+     console.log(watcher.getStatus());
    });
 
 // add some listeners to flip between range and sheet

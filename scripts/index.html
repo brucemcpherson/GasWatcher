@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <style>
+    td {
+      padding:4px;
+      font-size:.7em;
+    }
+    </style>
+  </head>
+  
+  <body style="margin:4px;">
+
+   <script src="//cdnjs.cloudflare.com/ajax/libs/es6-promise/3.2.1/es6-promise.min.js"></script>
+   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/ifvisible/1.0.6/ifvisible.min.js"></script>
+    <?!= Include.js(['main']); ?>
+    <?!= Include.gs(['ClientWatcher','Provoke','Utils','DomUtils','Fiddler']); ?>
+    
+    
+    
+    <div class="block">
+    <div>Data and active watching</div>
+    <table>
+    <tr><td>id</td><td id="dw-id"></td></tr>
+    <tr><td>datarange</td><td id="dw-datarange"></td></tr>
+    <tr><td>activesheet</td><td id="dw-activesheet"></td></tr>
+    <tr><td>activerange</td><td id="dw-activerange"></td></tr>
+    <tr><td>activerange</td><td id="dw-dimensions"></td></tr>
+    <tr><td>sheets</td><td  id="dw-sheets"></td></tr>
+    <tr><td>values</td><td  id="dw-data"></td></tr>
+    <tr><td>fiddler</td><td  id="dw-fiddler"></td></tr>
+    <tr><td>status</td><td id="dw-status"></td></tr>
+    </table>
+    </div>
+    <div class="block">
+    <div>Background color watching</div>
+    <table>
+    <tr><td>values</td><td  id="cw-data"></td></tr>
+    <tr><td>fiddler</td><td  id="cw-fiddler"></td></tr>
+    <tr><td>status</td><td id="cw-status"></td></tr>
+    </table>
+   </div>
+   
+   <label>whole sheet <input type="radio" name="range" checked id="radio-sheet"></label>
+   <label>selected range <input type="radio" name="range" id="radio-range"></label>
+  </body>
+</html>
+
+
+
